@@ -14,6 +14,8 @@ A project that use explainable LLM decorator to control the behavior of LLMs.
 - Our primary goal in augmenting the dataset is to design a dataset that includes multiple emotional factors, enabling the model to learn from these distinct emotional dimensions.
 - If the dataset is effectively constructed, the machine can simulate a larger range of emotional responses and switch dynamically between different emotional states based on a hard-coded emotion control parameter.
 We could further introduce a role-play mechanism in which the model emulates characters with specific emotional profiles, such as those from movies.
+## Update Oct 16
+- We developed our dataset using Shaver's [2] Emotional Model, categorizing emotions accordingly. We crafted 100 commonly used daily expressions and provided multiple rephrased variations for each.
 
 # Team members
 - Kaiyu He (kxh230002)
@@ -24,5 +26,6 @@ We could further introduce a role-play mechanism in which the model emulates cha
     - 3. Semantic Classification.
 
 #Reference:
-- [1]Representation Engineering: A Top-Down Approach to AI Transparency 2023, arXiv, ,https://arxiv.org/abs/2310.01405. Access Date: Set 15 2024
+- [1]Representation Engineering: A Top-Down Approach to AI Transparency 2023, arXiv, https://arxiv.org/abs/2310.01405. Access Date: Oct 07, 2024
+- [2]P. R. Shaver, J. C. Schwartz, D. Kirson, and C. O’Connor, “Emotion knowledge: further exploration of a prototype approach.” Journal of Personality and Social Psychology, vol. 52 6, pp. 1061–86, 1987.
 
