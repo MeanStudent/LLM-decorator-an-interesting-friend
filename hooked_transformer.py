@@ -161,7 +161,7 @@ class hooked_transformer:
             
         
     def print_store_module_info(self):
-        prefix = 'root'
+        prefix = ''
         self.all_modules = {}
         print('----------------------------------------------------------------------------------------')
         print("This function print all the modules in this model,")
@@ -173,18 +173,46 @@ class hooked_transformer:
             current_module, current_prefix = stack.pop()
             children = list(current_module.named_children())
             for name, sub_module in reversed(children):
-                new_prefix = current_prefix + "/" + name
-                module_path_name = f"{current_prefix}:<{name},{type(sub_module).__name__}>"
+                if current_prefix == '':
+                    new_prefix = name
+                else:
+                    new_prefix = current_prefix + "." + name
+                module_path_name = f"{current_prefix}.{name},{type(sub_module).__name__}"
                 print(module_path_name)
                 assert module_path_name not in self.all_modules, f'''duplicate name for moudle list: {module_path_name}'''
                 self.all_modules.update({module_path_name:sub_module})
                 stack.append((sub_module, new_prefix))
+                
+    def get_module_device(self, module_ori_path:str):
+        device_map = self.model.hf_device_map
+        if ',' not in module_ori_path:
+            assert module_ori_path in device_map, f'''This module:{module_ori_path} do not have a name and do not have a direct path in the device map.'''
+        module_path, module_type = module_ori_path.split(',')
+        module_root_path = module_path.split('.')
+        if '.'.join(module_root_path) in device_map:
+            device_index = str(device_map['.'.join(module_root_path)])
+            print(f'''device for {module_root_path} is {'cuda:'+device_index}''')
+            return 'cuda:'+device_index
+        else:
+            print('.'.join(module_root_path),'not in device map')
+        for i in range(1,len(module_path_list)+1):
+            remaining_list = module_path_list[:-i]
+            if '.'.join(remaining_list) in device_map:
+                device_index = str(device_map['.'.join(module_root_path)])
+                print(f'''device for {module_root_path} is {'cuda:'+device_index}''')
+                return 'cuda:'+device_index
+            else:
+                print('.'.join(remaining_list),'not in device map')
+        assert False, f'''Device for module:{module_ori_path} not found please check!'''
+        
 
     def add_single_hook(self, module_path_name:str, hook_type:str):
         assert hook_type in self.supported_hook_dict, f'''{hook_type} is not a defined hook.'''
         instance_hook = self.supported_hook_dict[hook_type](module_path_name = module_path_name)
+        align_hook = hooks.AlignDevicesHook(execution_device = self.get_module_device(module_path_name), io_same_device = True)
         self.hook_module_list.append((module_path_name, self.all_modules[module_path_name], instance_hook))
-        hooks.add_hook_to_module(self.all_modules[module_path_name],instance_hook)
+        hooks.add_hook_to_module(self.all_modules[module_path_name],align_hook)
+        hooks.add_hook_to_module(self.all_modules[module_path_name],instance_hook, append = True)
         print(f'''hook of {module_path_name} added.''')
         
     def add_hook_for_each_layer_by_name(self, 
@@ -194,7 +222,7 @@ class hooked_transformer:
         '''Add hook to repeated sepecific module in each layers like mlp......'''
         for layer_id in layer_list:
             for module_path_name in self.all_modules.keys():
-                if module_path_name.startswith(f'root/model/layers/{layer_id}:<{module_name}'):
+                if module_path_name.startswith(f'model.layers.{layer_id},{module_name}'):
                     self.add_single_hook(module_path_name, hook_type)
                     
     def add_hook_to_layer(self, 
@@ -202,7 +230,7 @@ class hooked_transformer:
                           layer_list:List[int],):
         for layer_id in layer_list:
             for module_path_name in self.all_modules.keys():
-                if module_path_name.startswith(f'root/model/layers:<{layer_id},'):
+                if module_path_name.startswith(f'model.layers.{layer_id},'):
                     self.add_single_hook(module_path_name, hook_type)
         
                     
